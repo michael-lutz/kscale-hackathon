@@ -12,7 +12,7 @@ from typing import Dict, Iterator, List, Optional
 class PoseTimeseries:
     """A timeseries of observed poses from ArUco markers"""
 
-    poses: Dict[int, deque[np.ndarray]] = attrs.field()
+    poses: Dict[int, deque[np.ndarray]] = attrs.field(factory=dict)
     """The poses in the timeseries. Each pose is a 7-dimensional vector in the form of
     [time, x, y, z, rx, ry, rz]. Assume that the ids are consecutive starting from 0.
     

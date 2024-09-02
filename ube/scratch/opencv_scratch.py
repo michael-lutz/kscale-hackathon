@@ -31,7 +31,7 @@ while True:
 
     # Detect ArUco markers
     corners, ids, rejected = cv2.aruco.detectMarkers(frame, aruco_dict, parameters=aruco_params)
-
+    print(ids)
     if ids is not None and 0 in ids:
         # Find index of marker with ID 0
         index = np.where(ids == 0)[0][0]
