@@ -8,7 +8,12 @@ from ube.data_stream.utils.constants import CubeID
 # Initialize the camera
 cap = cv2.VideoCapture(0)
 config = DataStreamConfig()
-tracker = CubeTracker(id=CubeID.CUBE_0, config=DataStreamConfig())
+tracker = CubeTracker(
+    id=CubeID.CUBE_0,
+    config=DataStreamConfig(
+        dist_coeffs=np.array([0.08320202, -0.01125216, -0.00116249, -0.00470709, -0.23390565])
+    ),
+)
 
 
 def draw_pose_on_frame(frame, pose, camera_matrix, dist_coeffs, axis_length=0.1):

@@ -37,7 +37,7 @@ class DataStreamConfig:
     """The detector parameters to use for marker detection"""
 
     camera_matrix: np.ndarray = attrs.field(
-        default=np.array([[1000, 0, 320], [0, 1000, 240], [0, 0, 1]], dtype=np.float32)
+        default=np.array([[1450, 0, 950], [0, 1450, 515], [0, 0, 1]], dtype=np.float32)
     )
     """The camera matrix to use for marker detection"""
 
