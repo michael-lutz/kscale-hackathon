@@ -62,5 +62,8 @@ class DataStreamConfig:
     }
     """The mapping of cube ids to their marker ids and positions"""
 
-    fresh_pose_time_threshold: float = 200
+    fresh_pose_time_threshold: float = 100
     """The maximum age of poses to consider, in ms"""
+
+    ewma_alpha: float = 0.6
+    """The alpha value for the EWMA filter"""

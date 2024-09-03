@@ -1,1 +1,15 @@
+# Ignore calibration images
 /calibration_images
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Python bytecode files
+*.pyc
+__pycache__/
+
+# Ignore egg-info directories
+*.egg-info

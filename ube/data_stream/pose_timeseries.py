@@ -73,6 +73,9 @@ class PoseTimeseries:
 
         recent_poses = []
         for id in ids:
+            if id not in self.poses:
+                raise ValueError(f"Marker id {id} not found in poses")
+
             recent_poses.append(self.poses[id][-1])
         return np.array(recent_poses)
 
@@ -98,6 +101,9 @@ class PoseTimeseries:
 
     def __getitem__(self, id: int) -> deque[np.ndarray]:
         return self.poses[id]
+
+    def __contains__(self, id: int) -> bool:
+        return id in self.poses
 
     def __len__(self) -> int:
         return len(self.poses)

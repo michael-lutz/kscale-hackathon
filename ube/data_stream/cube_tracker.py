@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import attrs
 
+from ube.data_stream.data_scoring import score_poses
 from ube.data_stream.data_stream_config import DataStreamConfig
 from ube.data_stream.pose_timeseries import PoseTimeseries
 from ube.data_stream.tracker_base import Tracker
@@ -69,17 +70,27 @@ class CubeTracker(Tracker):
         if t_fresh_poses is None or len(t_fresh_poses) == 0:
             return None
 
-        return t_fresh_poses[0]
-
         # TODO: apply scoring and Kalman filter
-        # fresh_poses = t_fresh_poses[:, 1:]
-        # score_vector = score_poses(self.pose_time_series, fresh_ids)
-        # tvec = self.score_adjusted_tvec(fresh_poses[:, :3], score_vector)
-        # rvec = self.score_adjusted_rvec(fresh_poses[:, 3:], score_vector)
-        ## TODO: apply kalman filter based on un-normalized score values
-        # calculated_pose = np.concatenate([[current_time], tvec, rvec], axis=0)
+        fresh_poses = t_fresh_poses[:, 1:7]
+        score_vector = score_poses(self.pose_time_series, fresh_ids)
+        tvec = self.score_adjusted_tvec(fresh_poses[:, 0:3], score_vector)
+        rvec = self.score_adjusted_rvec(fresh_poses[:, 3:6], score_vector)
 
-        # return calculated_pose
+        if -1 not in self.pose_time_series:
+            return np.concatenate([[current_time], tvec, rvec], axis=0)
+
+        historical_pose = self.pose_time_series.get_fresh_poses(ids=[-1])[0]
+        smoothed_tvec = (
+            self.config.ewma_alpha * tvec + (1 - self.config.ewma_alpha) * historical_pose[:, 1:4]
+        )
+        # for rvec need to convert to matrices first...
+        R_new = cv2.Rodrigues(rvec)[0]
+        R_old = cv2.Rodrigues(historical_pose[:, 3:6])[0]
+        R_smoothed = self.config.ewma_alpha * R_new + (1 - self.config.ewma_alpha) * R_old
+        smoothed_rvec = cv2.Rodrigues(R_smoothed)[0].flatten()
+        smoothed_pose = np.concatenate([[current_time], smoothed_tvec, smoothed_rvec], axis=0)
+
+        return smoothed_pose
 
     def get_cube_pose_vector(
         self, id: int, current_time: float, tvec: np.ndarray, rvec: np.ndarray
@@ -95,7 +106,8 @@ class CubeTracker(Tracker):
             rvec (np.ndarray): The rotation vector
 
         Returns:
-            np.ndarray: The pose vector of the cube
+            np.ndarray: The pose vector of the cube with dimensions:
+                (time, x, y, z, rx, ry, rz)
         """
         # getting the rotation matrix from the rotation vector
         R, _ = cv2.Rodrigues(rvec)

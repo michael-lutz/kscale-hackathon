@@ -49,8 +49,6 @@ class ClawTracker(Tracker):
         if left_cube_pose is None or right_cube_pose is None:
             return None
 
-        print("Left cube pose:", left_cube_pose)
-        print("Right cube pose:", right_cube_pose)
         # get the wrist and gripper width of the left and right cubes
         wrist_pose = (left_cube_pose[1:4] + right_cube_pose[1:4]) / 2
         gripper_width = np.linalg.norm(right_cube_pose[1:4] - left_cube_pose[1:4])
