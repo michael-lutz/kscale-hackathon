@@ -70,6 +70,7 @@ class CubeTracker:
 
         return t_fresh_poses[0]
 
+        # TODO: apply scoring and Kalman filter
         # fresh_poses = t_fresh_poses[:, 1:]
         # score_vector = score_poses(self.pose_time_series, fresh_ids)
         # tvec = self.score_adjusted_tvec(fresh_poses[:, :3], score_vector)
@@ -78,25 +79,6 @@ class CubeTracker:
         # calculated_pose = np.concatenate([[current_time], tvec, rvec], axis=0)
 
         # return calculated_pose
-
-    def get_marker_to_center_vector(self, marker_pos: MarkerPosition) -> np.ndarray:
-        """
-        Returns the vector from the marker to the center of the cube
-
-        Args:
-            marker_pos (MarkerPosition): The position of the marker
-            rvec (np.ndarray): The rotation vector
-        """
-        half_size = self.config.cube_side_length / 2
-        marker_to_center = {
-            MarkerPosition.BACK: np.array([0, 0, half_size]),
-            MarkerPosition.RIGHT: np.array([-half_size, 0, 0]),
-            MarkerPosition.FRONT: np.array([0, 0, -half_size]),
-            MarkerPosition.LEFT: np.array([half_size, 0, 0]),
-            MarkerPosition.TOP: np.array([0, -half_size, 0]),
-        }
-
-        return marker_to_center[marker_pos]
 
     def get_cube_pose_vector(
         self, id: int, current_time: float, tvec: np.ndarray, rvec: np.ndarray
@@ -119,20 +101,48 @@ class CubeTracker:
         marker_pos = self.config.cube_marker_map[self.id][id]
         # rotating the marker_to_center vector and add accordingly
         half_size = self.config.cube_side_length / 2
-        marker_to_center = {
-            MarkerPosition.BACK: np.array([0, 0, half_size]),
-            MarkerPosition.RIGHT: np.array([-half_size, 0, 0]),
-            MarkerPosition.FRONT: np.array([0, 0, -half_size]),
-            MarkerPosition.LEFT: np.array([half_size, 0, 0]),
-            MarkerPosition.TOP: np.array([0, -half_size, 0]),
-        }
-        rotated_vector = R.dot(marker_to_center[marker_pos])
-        cube_center = tvec  # + rotated_vector # TODO: readd...
-        print("OLD", tvec)
-        print("NEW", cube_center)
-        pose_vector = np.concatenate([[current_time], cube_center, rvec], axis=0)
+
+        # Adjust rvec based on marker position
+        adjusted_rvec = self.adjust_rvec_based_on_marker_position(rvec, marker_pos)
+
+        # rotated_vector = R.dot(marker_to_center)
+        cube_center = tvec + R @ np.array([0, 0, -1]) * half_size
+        pose_vector = np.concatenate([[current_time], cube_center, adjusted_rvec], axis=0)
 
         return pose_vector
+
+    def adjust_rvec_based_on_marker_position(
+        self, rvec: np.ndarray, marker_pos: MarkerPosition
+    ) -> np.ndarray:
+        """
+        Adjusts the rotation vector based on the marker position.
+
+        Args:
+            rvec (np.ndarray): The original rotation vector.
+            marker_pos (MarkerPosition): The position of the marker.
+
+        Returns:
+            np.ndarray: The adjusted rotation vector.
+        """
+        R, _ = cv2.Rodrigues(rvec)
+        if marker_pos == MarkerPosition.RIGHT:
+            # rotate 90 degrees to the right around the Y-axis
+            rotation_matrix = cv2.Rodrigues(np.array([0, -np.pi / 2, 0]))[0]
+        elif marker_pos == MarkerPosition.FRONT:
+            # rotate 180 degrees around the Y-axis
+            rotation_matrix = cv2.Rodrigues(np.array([0, -np.pi, 0]))[0]
+        elif marker_pos == MarkerPosition.LEFT:
+            # rotate 90 degrees to the left around the Y-axis
+            rotation_matrix = cv2.Rodrigues(np.array([0, np.pi / 2, 0]))[0]
+        elif marker_pos == MarkerPosition.TOP:
+            # rotate 90 degrees around the X-axis
+            rotation_matrix = cv2.Rodrigues(np.array([np.pi / 2, 0, 0]))[0]
+        else:
+            return rvec  # if back of the cube, no adjustment
+
+        adjusted_R = R @ rotation_matrix
+        adjusted_rvec, _ = cv2.Rodrigues(adjusted_R)
+        return adjusted_rvec.flatten()
 
     def score_adjusted_tvec(self, tvecs: np.ndarray, score_vector: np.ndarray) -> np.ndarray:
         """
