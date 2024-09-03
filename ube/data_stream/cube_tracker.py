@@ -9,11 +9,12 @@ import attrs
 
 from ube.data_stream.data_stream_config import DataStreamConfig
 from ube.data_stream.pose_timeseries import PoseTimeseries
+from ube.data_stream.tracker_base import Tracker
 from ube.data_stream.utils.constants import CubeID, MarkerPosition
 
 
 @attrs.define
-class CubeTracker:
+class CubeTracker(Tracker):
     """Tracks the cube in the image"""
 
     id: CubeID = attrs.field()
